@@ -5,15 +5,11 @@ import numpy as np
 
 _engine = None
 _engine_lock = threading.Lock()
-# PaddleOCR predictors are not thread-safe: two concurrent predict() calls on the
-# same instance can corrupt state or crash the process. Serialize inference.
 _predict_lock = threading.Lock()
 
 OCR_DPI = 150
 MIN_NATIVE_TEXT_CHARS = 20
 
-# Model presets. "mobile" is ~10x faster than the default "medium" models on CPU
-# while keeping comparable layout detection quality on printed documents.
 MODEL_PRESETS = {
     "mobile": ("PP-OCRv5_mobile_det", "en_PP-OCRv5_mobile_rec"),
     "small": ("PP-OCRv6_small_det", "PP-OCRv6_small_rec"),
@@ -143,8 +139,6 @@ def ocr_image_to_elements(image, page_number=1, scale_x=1.0, scale_y=1.0):
             },
             "style": {
                 "fontFamily": "Times New Roman, Times, serif",
-                # OCR boxes are inflated by the detector's unclip ratio, so the
-                # box height is roughly twice the font size.
                 "fontSize": round(max(8.0, min(28.0, height * 0.5)), 2),
                 "color": "#000000",
                 "bold": False,

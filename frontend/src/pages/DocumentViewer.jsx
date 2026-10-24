@@ -26,7 +26,6 @@ import {
     getExportUrl,
 } from "../services/api";
 
-// Reusable Thumbnail Sidebar (Used for both Left and Right)
 function PageSidebar({ docId, pageNumbers, activePage, onSelect, isOpen, onToggle, isRight }) {
     if (!isOpen) {
         return (
@@ -81,13 +80,11 @@ function DocumentViewer() {
     const { id: documentId } = useParams();
     const navigate = useNavigate();
 
-    // Data states
     const [docData, setDocData] = useState(null);
     const [layout, setLayout] = useState(null);
     const [activePage, setActivePage] = useState(1);
     const [activeElId, setActiveElId] = useState(null);
 
-    // UI states
     const [loading, setLoading] = useState(true);
     const [layoutLoading, setLayoutLoading] = useState(true);
     const [layoutError, setLayoutError] = useState("");
@@ -97,9 +94,8 @@ function DocumentViewer() {
     const [saveNotice, setSaveNotice] = useState("");
     const [showLeftPages, setShowLeftPages] = useState(true);
     const [showRightPages, setShowRightPages] = useState(true);
-    const [scale, setScale] = useState(0.85); // 85% scale fits full page comfortably
+    const [scale, setScale] = useState(0.85);
 
-    // Load the layout, or fall back to "extraction is running" mode.
     const loadLayout = useCallback(
         async ({ refresh = false } = {}) => {
             const { httpStatus, data } = await getDocumentLayout(documentId, { refresh });
@@ -139,7 +135,6 @@ function DocumentViewer() {
         [documentId]
     );
 
-    // Load document metadata first so the original PDF can render, then layout.
     useEffect(() => {
         let isMounted = true;
         (async () => {
@@ -174,7 +169,6 @@ function DocumentViewer() {
         return () => { isMounted = false; };
     }, [documentId, loadLayout]);
 
-    // Poll the backend while OCR is running.
     useEffect(() => {
         if (job?.state !== "processing") return;
 
@@ -255,14 +249,12 @@ function DocumentViewer() {
         }
     };
 
-    // Active page metrics
     const page = layout?.pages?.find((p) => p.page_number === activePage);
     const pw = page?.width || 595.2;
     const ph = page?.height || 841.92;
     const elements = page?.elements || [];
     const activeEl = elements.find((el) => el.id === activeElId);
 
-    // Text & Style mutators
     const updateElement = (id, patch) => {
         setLayout((prev) => {
             if (!prev) return prev;
@@ -281,7 +273,6 @@ function DocumentViewer() {
         setIsDirty(true);
     };
 
-    // Save document layout
     const handleSave = async () => {
         try {
             setSaving(true);
@@ -297,7 +288,6 @@ function DocumentViewer() {
         }
     };
 
-    // Export document
     const handleDownload = (format) => {
         const link = document.createElement("a");
         link.href = getExportUrl(documentId, format);
@@ -323,9 +313,7 @@ function DocumentViewer() {
 
     return (
         <div className="flex h-screen w-full flex-col overflow-hidden bg-gray-100 select-none">
-            {/* HEADER */}
             <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-xs">
-                {/* Back & Title */}
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate("/")}
@@ -340,7 +328,6 @@ function DocumentViewer() {
                     </span>
                 </div>
 
-                {/* Page Navigation */}
                 <div className="flex items-center gap-2 border border-gray-200 rounded-md px-2 py-1 bg-gray-50">
                     <button
                         onClick={() => setActivePage((p) => Math.max(1, p - 1))}
@@ -361,7 +348,6 @@ function DocumentViewer() {
                     </button>
                 </div>
 
-                {/* Save & Export */}
                 <div className="flex items-center gap-2">
                     {saveNotice && (
                         <span className="text-xs font-medium text-emerald-600 mr-1">{saveNotice}</span>
@@ -397,16 +383,13 @@ function DocumentViewer() {
                 </div>
             </header>
 
-            {/* TWO-PANE BODY */}
             <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 gap-3 p-3">
-                {/* ================= LEFT: ORIGINAL SOURCE ================= */}
                 <section className="flex min-h-0 flex-col rounded-lg border border-gray-200 bg-white overflow-hidden shadow-xs">
                     <div className="flex h-10 items-center justify-between border-b border-gray-200 px-3 bg-gray-50">
                         <span className="text-xs font-bold uppercase tracking-wider text-gray-600">
                             Original Source (Page {activePage})
                         </span>
 
-                        {/* Zoom Controls (To scale page nicely) */}
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={() => setScale((s) => Math.max(0.5, s - 0.08))}
@@ -436,7 +419,6 @@ function DocumentViewer() {
                     </div>
 
                     <div className="flex min-h-0 flex-1">
-                        {/* Page Thumbnails on Left */}
                         <PageSidebar
                             docId={documentId}
                             pageNumbers={pageNumbers}
@@ -447,7 +429,6 @@ function DocumentViewer() {
                             isRight={false}
                         />
 
-                        {/* Source Image with Transparent Selectable & Copyable Text Layer */}
                         <div className="flex min-w-0 flex-1 items-start justify-center overflow-auto bg-gray-200 p-3 select-text">
                             <div
                                 className="relative bg-white shadow-md border border-gray-300 select-text cursor-text"
@@ -459,7 +440,6 @@ function DocumentViewer() {
                                     className="block h-full w-full pointer-events-none"
                                 />
 
-                                {/* Transparent Selectable Text Overlay */}
                                 <div className="absolute inset-0 pointer-events-auto select-text cursor-text">
                                     {elements.map((el) => {
                                         if (el.type === "image" || !el.text) return null;
@@ -491,12 +471,9 @@ function DocumentViewer() {
                     </div>
                 </section>
 
-                {/* ================= RIGHT: WORD DOCUMENT ================= */}
                 <section className="flex min-h-0 flex-col rounded-lg border border-gray-200 bg-white overflow-hidden shadow-xs">
-                    {/* Word Toolbar */}
                     <div className="flex items-center justify-between border-b border-gray-200 px-3 py-1.5 bg-gray-50 text-xs text-gray-700">
                         <div className="flex items-center gap-1.5">
-                            {/* Font size */}
                             <select
                                 value={activeEl?.style?.fontSize ? Math.round(activeEl.style.fontSize) : 14}
                                 onChange={(e) =>
@@ -511,7 +488,6 @@ function DocumentViewer() {
                                 ))}
                             </select>
 
-                            {/* Bold */}
                             <button
                                 onClick={() =>
                                     updateElement(activeElId, {
@@ -526,7 +502,6 @@ function DocumentViewer() {
                                 <Bold size={14} />
                             </button>
 
-                            {/* Italic */}
                             <button
                                 onClick={() =>
                                     updateElement(activeElId, {
@@ -543,7 +518,6 @@ function DocumentViewer() {
 
                             <div className="h-4 w-[1px] bg-gray-200 mx-0.5" />
 
-                            {/* Alignment */}
                             <button
                                 onClick={() =>
                                     updateElement(activeElId, {
@@ -583,7 +557,6 @@ function DocumentViewer() {
                     </div>
 
                     <div className="flex min-h-0 flex-1">
-                        {/* Word Sheet View with Exact Proportional Placement (ZERO BLUE BOXES) */}
                         <div
                             className="min-w-0 flex-1 overflow-auto bg-gray-200 p-3 select-text cursor-text flex justify-center items-start"
                             onClick={(e) => {
@@ -626,7 +599,6 @@ function DocumentViewer() {
                                     </div>
                                 )}
                                 {elements.map((el) => {
-                                    // 1. TABLE CELL BACKGROUND FILL
                                     if (el.type === "fill") {
                                         return (
                                             <div
@@ -645,11 +617,8 @@ function DocumentViewer() {
                                         );
                                     }
 
-                                    // Divider lines removed per request
                                     if (el.type === 'line') return null;
-                                    // 3. IMAGE (EXACT POSITION & PROPORTIONAL SIZE, ZERO BLUE BOXES)
                                     if (el.type === "image") {
-                                        // Full-page scans are backgrounds: the OCR text replaces them.
                                         if (el.isBackground) return null;
                                         const imgW = el.bbox?.width || 100;
                                         const imgH = el.bbox?.height || 50;
@@ -678,7 +647,6 @@ function DocumentViewer() {
                                         );
                                     }
 
-                                    // 4. TEXT (EXACT X/Y COORDINATES, NO BLUE BOXES, PERFECT ALIGNMENT)
                                     return (
                                         <div
                                             key={el.id}
@@ -694,7 +662,6 @@ function DocumentViewer() {
                                                 position: "absolute",
                                                 left: `${(el.bbox.x / pw) * 100}%`,
                                                 top: `${(el.bbox.y / ph) * 100}%`,
-                                                // Keep text inside the sheet: wrap at the page's right edge.
                                                 width: `${(Math.max(pw - el.bbox.x, 24) / pw) * 100}%`,
                                                 fontSize: `${(el.style?.fontSize || 14) * scale}px`,
                                                 fontFamily: el.style?.fontFamily || '"Times New Roman", Times, serif',
@@ -717,7 +684,6 @@ function DocumentViewer() {
                             </div>
                         </div>
 
-                        {/* Page Thumbnails on Right */}
                         <PageSidebar
                             docId={documentId}
                             pageNumbers={pageNumbers}

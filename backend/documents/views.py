@@ -21,13 +21,6 @@ from .pymupdf_extractor import (
 )
 
 
-# ---------------------------------------------------------------------------
-# Background extraction jobs
-#
-# OCR can take several minutes on scanned documents, which is far longer than a
-# browser/proxy will wait. Extraction therefore runs in a worker thread and the
-# API reports progress; at most one job per document may be in flight.
-# ---------------------------------------------------------------------------
 _jobs = {}
 _jobs_lock = threading.Lock()
 
@@ -149,7 +142,6 @@ class DocumentView(ListCreateAPIView):
 
     def perform_create(self, serializer):
         document = serializer.save()
-        # Kick off extraction right away so the viewer usually finds it ready.
         _start_extraction(document.id, document=document)
 
 
@@ -225,8 +217,6 @@ class DocumentStatusView(APIView):
 
         job = _job_snapshot(document_id)
         if not job and not has_layout and document.status in ("pending", "processing"):
-            # No in-memory job (e.g. the dev server restarted mid-extraction):
-            # start it again so polling heals itself.
             _start_extraction(document_id, document=document)
             job = _job_snapshot(document_id)
 
@@ -238,7 +228,6 @@ class DocumentStatusView(APIView):
         }
         payload["has_layout"] = has_layout
         return Response(payload)
-
 
 
 class DocumentExportView(APIView):

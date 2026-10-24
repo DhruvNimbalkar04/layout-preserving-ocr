@@ -12,7 +12,6 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-        // OCR/export requests can take a while; don't let the proxy drop them.
         timeout: 600000,
         proxyTimeout: 600000,
       },
