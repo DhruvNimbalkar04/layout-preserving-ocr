@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+env/
+.venv/
+venv/
+
+# Django
+*.sqlite3
+backend/media/
+backend/staticfiles/
+
+# Node / Vite
+node_modules/
+frontend/dist/
+.vite/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
