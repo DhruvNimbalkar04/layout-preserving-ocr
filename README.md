@@ -100,6 +100,7 @@ Backend variables (see `.env.example`):
 | `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated hosts. |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | empty | Comma-separated origins for admin/CSRF. |
 | `CORS_ALLOWED_ORIGINS` | localhost:5173 | Comma-separated frontend origins. |
+| `CORS_ALLOWED_ORIGIN_REGEXES` | empty | Regex origins, e.g. preview deploys. |
 | `CORS_ALLOW_ALL_ORIGINS` | `False` | Escape hatch; keep off in production. |
 | `DJANGO_UPLOAD_MAX_FILE_SIZE` | `20971520` (20 MB) | Maximum upload size. |
 | `UPLOAD_ALLOWED_EXTENSIONS` | pdf, jpg, jpeg, png, bmp, tif, tiff, webp | Upload allowlist. |
@@ -158,6 +159,22 @@ Publish `frontend/dist` as a static site with a rewrite of `/*` to
 > Most demo hosts use an **ephemeral filesystem**: uploaded files and the SQLite
 > database do not survive a redeploy. Use a persistent disk or Postgres + object
 > storage for anything beyond a demo.
+
+### Hugging Face Spaces
+
+Free CPU Spaces have 16 GB RAM, enough for PaddleOCR. The Space is public, so the
+source is visible there even though the GitHub repo stays private.
+
+```powershell
+$env:HF_TOKEN = "hf_..."
+python scripts/deploy_hf_space.py --username <hf-user> `
+    --frontend-origin https://your-app.vercel.app
+```
+
+The script creates the Space, sets `DJANGO_ALLOWED_HOSTS`, CORS and the secret
+key, uploads `backend/` plus `deploy/hf-space/Dockerfile`, waits for the build
+and prints the API URL. The Space sleeps after 48 hours idle and takes a minute
+to wake on the next request.
 
 ## API overview
 

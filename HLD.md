@@ -229,11 +229,14 @@ missing documents/pages, `202` while extraction is in flight.
 
 - The API runs under gunicorn with whitenoise for static files; the frontend is
   a static Vite build served by any static host.
+- `deploy/hf-space/` holds the Dockerfile and Space card used by
+  `scripts/deploy_hf_space.py`; gunicorn runs a **single worker** because job
+  state is kept in process memory.
 - Required variables: `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`,
   `CORS_ALLOWED_ORIGINS`, and on the frontend `VITE_API_BASE_URL`.
 - The PaddleOCR stack needs roughly 2 GB of RAM; free tiers with 512 MB will
   fail on scanned documents.
-- Render's default filesystem is ephemeral: uploaded files and SQLite do not
+- Demo hosts use an ephemeral filesystem: uploaded files and SQLite do not
   survive a redeploy. A persistent disk or Postgres + object storage is the
   production answer.
 
