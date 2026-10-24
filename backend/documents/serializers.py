@@ -1,5 +1,7 @@
+import os
 import pymupdf
 from rest_framework import serializers
+from django.conf import settings
 from .models import Documents, ExtractedText
 
 
@@ -28,6 +30,27 @@ class DocumentSerializer(serializers.ModelSerializer):
     def validate_document_kind(self, value):
         if value not in ("normal", "scanned"):
             return "normal"
+        return value
+
+    def validate_file(self, value):
+        extension = os.path.splitext(value.name)[1].lower().lstrip(".")
+        allowed = {ext.lower().lstrip(".") for ext in settings.UPLOAD_ALLOWED_EXTENSIONS}
+
+        if not extension or extension not in allowed:
+            readable = ", ".join(sorted(allowed))
+            raise serializers.ValidationError(
+                f"Unsupported file type '.{extension or 'unknown'}'. Allowed: {readable}."
+            )
+
+        if value.size == 0:
+            raise serializers.ValidationError("The uploaded file is empty.")
+
+        if value.size > settings.UPLOAD_MAX_FILE_SIZE:
+            limit_mb = settings.UPLOAD_MAX_FILE_SIZE / (1024 * 1024)
+            raise serializers.ValidationError(
+                f"File is larger than the {limit_mb:.0f} MB limit."
+            )
+
         return value
 
     def get_num_pages(self, obj):

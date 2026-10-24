@@ -652,6 +652,11 @@ function DocumentViewer() {
                                             key={el.id}
                                             contentEditable={true}
                                             suppressContentEditableWarning={true}
+                                            title={
+                                                el.confidence != null && el.confidence < 0.8
+                                                    ? `Low OCR confidence: ${Math.round(el.confidence * 100)}%`
+                                                    : undefined
+                                            }
                                             onClick={() => setActiveElId(el.id)}
                                             onFocus={() => setActiveElId(el.id)}
                                             onBlur={(e) => {
@@ -673,6 +678,10 @@ function DocumentViewer() {
                                                 overflowWrap: "anywhere",
                                                 outline: "none",
                                                 border: "none",
+                                                borderBottom:
+                                                    el.confidence != null && el.confidence < 0.8
+                                                        ? "2px dotted #f59e0b"
+                                                        : "none",
                                                 cursor: "text",
                                                 zIndex: 10,
                                             }}

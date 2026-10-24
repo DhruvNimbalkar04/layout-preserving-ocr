@@ -1,9 +1,11 @@
 import axios from "axios";
 
-export const BASE_URL = "http://127.0.0.1:8000";
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
+export const BASE_URL = API_ORIGIN;
 
 const API = axios.create({
-    baseURL: "/api/",
+    baseURL: `${API_ORIGIN}/api/`,
 });
 
 export const getMediaUrl = (fileUrl) => {
@@ -15,11 +17,11 @@ export const getMediaUrl = (fileUrl) => {
 };
 
 export const getPageImageUrl = (id, pageNum) => {
-    return `/api/documents/${id}/pages/${pageNum}/`;
+    return `${API_ORIGIN}/api/documents/${id}/pages/${pageNum}/`;
 };
 
 export const getExportUrl = (id, format = "pdf") => {
-    return `/api/documents/${id}/export/?export_format=${format}`;
+    return `${API_ORIGIN}/api/documents/${id}/export/?export_format=${format}`;
 };
 
 export const uploadDocument = async (file, documentKind = "normal") => {

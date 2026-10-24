@@ -16,7 +16,19 @@ const UploadDoc = () => {
   const handleFileUpload = async (file) => {
     if (!file) return;
 
-    const isImage = /\.(jpg|jpeg|png|heic|webp|bmp|tif|tiff)$/i.test(file.name);
+    const allowedFile = /\.(pdf|jpe?g|png|bmp|tiff?|webp)$/i;
+    if (!allowedFile.test(file.name)) {
+      setErrorMsg("Unsupported file type. Upload a PDF or an image (JPG, PNG, BMP, TIFF, WEBP).");
+      return;
+    }
+
+    const maxMb = 20;
+    if (file.size > maxMb * 1024 * 1024) {
+      setErrorMsg(`File is larger than the ${maxMb} MB limit.`);
+      return;
+    }
+
+    const isImage = /\.(jpg|jpeg|png|webp|bmp|tif|tiff)$/i.test(file.name);
     const kind = isImage ? "scanned" : documentKind;
     if (isImage) setDocumentKind("scanned");
 
@@ -185,7 +197,7 @@ const UploadDoc = () => {
                 id="file-upload"
                 type="file"
                 className="hidden"
-                accept=".pdf,.jpg,.jpeg,.png,.heic,.webp,.bmp"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff"
                 onChange={handleTypeChange}
                 disabled={uploading}
               />

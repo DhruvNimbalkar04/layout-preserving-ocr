@@ -15,7 +15,7 @@ IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 
 # Bump when the layout structure or element semantics change so cached layouts
 # from older extractors are rebuilt on next open.
-LAYOUT_VERSION = 2
+LAYOUT_VERSION = 3
 
 
 def clean_font_family(font_name):
@@ -38,6 +38,71 @@ def clean_font_family(font_name):
     return f"{fn}, sans-serif"
 
 
+def _apply_reading_order(elements, page_width):
+    """Sort text lines into column-major order when a clear vertical gutter exists.
+
+    Detectors return lines in raw detection order (usually top-to-bottom across the
+    whole page), which interleaves columns. Reordering only happens when the page
+    looks genuinely multi-column, so single-column pages keep their original order.
+    """
+    text = [el for el in elements if el.get("type") == "text-line"]
+    if len(text) < 8 or page_width <= 0:
+        return elements
+
+    body = [el for el in text if el["bbox"]["width"] <= 0.55 * page_width]
+    if len(body) < max(6, int(len(text) * 0.7)):
+        return elements
+
+    bins = 100
+    covered = [False] * bins
+    for el in body:
+        start = max(0, int(el["bbox"]["x"] / page_width * bins))
+        end = min(bins - 1, int((el["bbox"]["x"] + el["bbox"]["width"]) / page_width * bins))
+        for index in range(start, end + 1):
+            covered[index] = True
+
+    best_start, best_len, run_start = None, 0, None
+    for index, is_covered in enumerate(covered + [True]):
+        if not is_covered and run_start is None:
+            run_start = index
+        elif is_covered and run_start is not None:
+            run_len = index - run_start
+            if run_len > best_len:
+                best_start, best_len = run_start, run_len
+            run_start = None
+
+    if best_len < 4:
+        return elements
+
+    gap_center = (best_start + best_len / 2) / bins * page_width
+    if not (0.2 * page_width <= gap_center <= 0.8 * page_width):
+        return elements
+
+    def column_of(el):
+        box = el["bbox"]
+        return 0 if box["x"] + box["width"] / 2 < gap_center else 1
+
+    left = [el for el in text if column_of(el) == 0]
+    right = [el for el in text if column_of(el) == 1]
+    if len(left) < 3 or len(right) < 3:
+        return elements
+
+    ordered = sorted(
+        text,
+        key=lambda el: (
+            column_of(el),
+            el["bbox"]["y"] - el["bbox"]["height"] * 0.5,
+            el["bbox"]["x"],
+        ),
+    )
+
+    ordered_iter = iter(ordered)
+    return [
+        next(ordered_iter) if el.get("type") == "text-line" else el
+        for el in elements
+    ]
+
+
 def _ocr_pdf_page(page, page_number):
     pix = page.get_pixmap(dpi=OCR_DPI)
     rgb = pixmap_to_rgb(pix)
@@ -56,7 +121,7 @@ def extract_document_layout(file_path, use_ocr=False, on_progress=None):
                 "page_number": 1,
                 "width": float(width or 595.2),
                 "height": float(height or 841.92),
-                "elements": elements,
+                "elements": _apply_reading_order(elements, width or 595.2),
             }],
             "ocr_engine": "paddleocr",
             "layout_version": LAYOUT_VERSION,
@@ -201,6 +266,8 @@ def extract_document_layout(file_path, use_ocr=False, on_progress=None):
                         elements = non_text + ocr_elements
                 except Exception as err:
                     print(f"OCR failed on page {page_number}, keeping native text: {err}")
+
+            elements = _apply_reading_order(elements, page.rect.width)
 
             pages.append({
                 "page_number": page_number,
