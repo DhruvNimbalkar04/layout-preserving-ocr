@@ -75,7 +75,7 @@ flowchart LR
 1. Client posts `multipart/form-data` to `POST /api/documents/` with `file` and
    `document_kind` (`normal` | `scanned`).
 2. Serializer rejects unsupported extensions, empty files and files above
-   `UPLOAD_MAX_FILE_SIZE` (20 MB default).
+   `DJANGO_UPLOAD_MAX_FILE_SIZE` (20 MB default).
 3. The file is stored under `MEDIA_ROOT/documents/`, a `Documents` row is
    created with `status=pending`.
 4. A background thread starts extraction and flips status to `processing`.

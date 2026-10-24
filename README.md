@@ -103,7 +103,7 @@ Backend variables (see `.env.example`):
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | empty | Comma-separated origins for admin/CSRF. |
 | `CORS_ALLOWED_ORIGINS` | localhost:5173 | Comma-separated frontend origins. |
 | `CORS_ALLOW_ALL_ORIGINS` | `False` | Escape hatch; keep off in production. |
-| `UPLOAD_MAX_FILE_SIZE` | `20971520` (20 MB) | Maximum upload size. |
+| `DJANGO_UPLOAD_MAX_FILE_SIZE` | `20971520` (20 MB) | Maximum upload size. |
 | `UPLOAD_ALLOWED_EXTENSIONS` | pdf, jpg, jpeg, png, bmp, tif, tiff, webp | Upload allowlist. |
 | `DJANGO_SERVE_MEDIA` | `False` | Serve `/media/` through Django (demo hosts). |
 

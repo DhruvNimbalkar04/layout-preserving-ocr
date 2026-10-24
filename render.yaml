@@ -19,7 +19,7 @@ services:
         value: "True"
       - key: CORS_ALLOWED_ORIGINS
         sync: false
-      - key: UPLOAD_MAX_FILE_SIZE
+      - key: DJANGO_UPLOAD_MAX_FILE_SIZE
         value: "20971520"
 
   - type: web
