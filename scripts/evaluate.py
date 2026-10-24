@@ -3,11 +3,14 @@
 Usage:
     python scripts/evaluate.py --document samples/page.pdf --truth samples/page.txt
     python scripts/evaluate.py --manifest samples/manifest.json --out results.json
+    python scripts/evaluate.py --manifest samples/manifest.json --out results.json --warmup
 
 A manifest is a JSON list of entries:
     [{"name": "clean-1", "document": "clean/1.pdf", "truth": "clean/1.txt",
-      "kind": "normal"}]
-Relative paths are resolved against the manifest file.
+      "kind": "normal", "category": "clean printed", "truth_source": "manual",
+      "notes": "free text"}]
+Relative paths are resolved against the manifest file. `category`, `truth_source`
+and `notes` are optional and copied into the JSON output unchanged.
 """
 
 import argparse
@@ -95,6 +98,9 @@ def evaluate_entry(entry, base_dir):
 
     return {
         "name": entry.get("name", document.stem),
+        "category": entry.get("category", "uncategorised"),
+        "truth_source": entry.get("truth_source", "native text layer"),
+        "notes": entry.get("notes", ""),
         "kind": kind,
         "pages": pages,
         "seconds": round(elapsed, 3),
@@ -129,6 +135,15 @@ def print_table(rows):
         print(f"mean CER {mean_cer:.4f} | mean WER {mean_wer:.4f} | total {total_seconds:.1f}s")
 
 
+def warm_up_ocr():
+    """Load PaddleOCR and run one prediction so timing excludes model init."""
+    import numpy as np
+
+    from documents.paddleocr_engine import ocr_image_to_elements
+
+    ocr_image_to_elements(np.full((64, 200, 3), 255, dtype=np.uint8))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--document", help="Path to a PDF or image")
@@ -137,6 +152,12 @@ def main():
     parser.add_argument("--name", default=None)
     parser.add_argument("--manifest", help="JSON manifest of benchmark entries")
     parser.add_argument("--out", help="Write detailed results as JSON")
+    parser.add_argument(
+        "--warmup",
+        action="store_true",
+        help="Load PaddleOCR before timing so the first scanned page is not "
+        "charged for model initialisation.",
+    )
     args = parser.parse_args()
 
     if args.manifest:
@@ -157,6 +178,9 @@ def main():
         parser.error("provide --manifest or both --document and --truth")
 
     rows = []
+    if args.warmup:
+        warm_up_ocr()
+        print("PaddleOCR warmed up; timing excludes model initialisation.")
     for entry in entries:
         row = evaluate_entry(entry, base_dir)
         rows.append(row)

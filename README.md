@@ -38,7 +38,7 @@ document that keeps the original page layout**, not just plain extracted text.
 │       ├── pymupdf_extractor.py  # layout pipeline + PDF/HTML generation
 │       └── paddleocr_engine.py   # thread-safe OCR wrapper
 ├── frontend/src/                 # React app (pages, components, API client)
-├── docs/BENCHMARK.md             # evaluation protocol
+├── docs/BENCHMARK.md             # protocol + measured results
 ├── scripts/evaluate.py           # CER/WER + timing harness
 ├── HLD.md                        # high-level design
 ├── requirements.txt
@@ -120,13 +120,26 @@ save, status, exports and the reading-order heuristic.
 
 ## Evaluation
 
-`docs/BENCHMARK.md` describes the test set and metrics. Run the harness with:
+`docs/BENCHMARK.md` describes the test set, the metrics and the measured
+results. Latest run (2026-10-24, CPU only):
+
+- Digital PDFs: **CER 0.000**, 0.06 s/page over 11 pages (text is lossless; this
+  measures ordering/loss, not OCR accuracy).
+- Photographed textbook page: **CER 0.007**, WER 0.042, 13.3 s/page.
+- Handwritten form: **CER 0.435** — the documented failure mode.
+- 13 pages total across four real documents; two-column and photo-heavy layouts
+  are not yet covered.
+
+Raw numbers are in `docs/results.json`; the run manifest is
+`docs/benchmark-manifest.json`.
 
 ```bash
-python scripts/evaluate.py --manifest samples/manifest.json --out results.json
+python scripts/evaluate.py --manifest docs/benchmark-manifest.json --out docs/results.json --warmup
 ```
 
-It reports CER, WER and seconds per page per document.
+`samples/` is gitignored because the source documents are personal, so point the
+manifest at your own pages to reproduce. `--warmup` loads PaddleOCR before timing
+so the first scanned page is not charged for model initialisation.
 
 ## Deployment
 

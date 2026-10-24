@@ -1,0 +1,119 @@
+[
+  {
+    "name": "cv_p1",
+    "document": "../samples/digital/cv_p1.pdf",
+    "truth": "../samples/digital/cv_p1.txt",
+    "kind": "normal",
+    "category": "clean printed, single column",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Digital CV, 1 page, no images."
+  },
+  {
+    "name": "brief_p1",
+    "document": "../samples/digital/brief_p1.pdf",
+    "truth": "../samples/digital/brief_p1.txt",
+    "kind": "normal",
+    "category": "table-heavy digital page",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 1: two bordered tables plus a logo image."
+  },
+  {
+    "name": "brief_p2",
+    "document": "../samples/digital/brief_p2.pdf",
+    "truth": "../samples/digital/brief_p2.txt",
+    "kind": "normal",
+    "category": "table-heavy digital page",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 2: heading hierarchy, a two-column table, a logo image."
+  },
+  {
+    "name": "brief_p3",
+    "document": "../samples/digital/brief_p3.pdf",
+    "truth": "../samples/digital/brief_p3.txt",
+    "kind": "normal",
+    "category": "clean printed, single column",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 3."
+  },
+  {
+    "name": "brief_p4",
+    "document": "../samples/digital/brief_p4.pdf",
+    "truth": "../samples/digital/brief_p4.txt",
+    "kind": "normal",
+    "category": "clean printed, single column",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 4."
+  },
+  {
+    "name": "brief_p5",
+    "document": "../samples/digital/brief_p5.pdf",
+    "truth": "../samples/digital/brief_p5.txt",
+    "kind": "normal",
+    "category": "clean printed, single column",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 5."
+  },
+  {
+    "name": "brief_p6",
+    "document": "../samples/digital/brief_p6.pdf",
+    "truth": "../samples/digital/brief_p6.txt",
+    "kind": "normal",
+    "category": "clean printed, single column",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 6."
+  },
+  {
+    "name": "brief_p7",
+    "document": "../samples/digital/brief_p7.pdf",
+    "truth": "../samples/digital/brief_p7.txt",
+    "kind": "normal",
+    "category": "clean printed, single column",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 7."
+  },
+  {
+    "name": "brief_p8",
+    "document": "../samples/digital/brief_p8.pdf",
+    "truth": "../samples/digital/brief_p8.txt",
+    "kind": "normal",
+    "category": "clean printed, single column",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 8."
+  },
+  {
+    "name": "brief_p9",
+    "document": "../samples/digital/brief_p9.pdf",
+    "truth": "../samples/digital/brief_p9.txt",
+    "kind": "normal",
+    "category": "clean printed, single column",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 9."
+  },
+  {
+    "name": "brief_p10",
+    "document": "../samples/digital/brief_p10.pdf",
+    "truth": "../samples/digital/brief_p10.txt",
+    "kind": "normal",
+    "category": "clean printed, single column",
+    "truth_source": "embedded PDF text layer (PyMuPDF)",
+    "notes": "Brief page 10."
+  },
+  {
+    "name": "pro_p1",
+    "document": "../samples/scanned/pro_p1.pdf",
+    "truth": "../samples/scanned/pro_p1.txt",
+    "kind": "scanned",
+    "category": "scanned / photographed printed page",
+    "truth_source": "manual transcription of the visible text",
+    "notes": "Textbook page photographed with a phone: finger in frame, shadow, slight skew."
+  },
+  {
+    "name": "newdoc_p1",
+    "document": "../samples/scanned/newdoc_p1.pdf",
+    "truth": "../samples/scanned/newdoc_p1.txt",
+    "kind": "scanned",
+    "category": "scanned form with handwriting",
+    "truth_source": "manual transcription of printed and handwritten fields",
+    "notes": "Medical certificate form: printed template plus handwritten answers. Deliberate stress case; handwriting is out of scope."
+  }
+]
