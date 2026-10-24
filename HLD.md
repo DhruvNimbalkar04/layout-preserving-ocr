@@ -228,8 +228,7 @@ missing documents/pages, `202` while extraction is in flight.
 ## 13. Deployment
 
 - `render.yaml` defines a Python web service (gunicorn + whitenoise) and a
-  static site for the Vite build.
-- `Dockerfile` builds a single image for any container host; `PORT` is honoured.
+  static site for the Vite build. It is the single supported deployment path.
 - Required variables: `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`,
   `CORS_ALLOWED_ORIGINS`, and on the frontend `VITE_API_BASE_URL`.
 - The PaddleOCR stack needs roughly 2 GB of RAM; free tiers with 512 MB will

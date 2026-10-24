@@ -42,7 +42,6 @@ document that keeps the original page layout**, not just plain extracted text.
 ├── scripts/evaluate.py           # CER/WER + timing harness
 ├── HLD.md                        # high-level design
 ├── render.yaml                   # Render blueprint (API + static site)
-├── Dockerfile                    # single-image deployment
 ├── requirements.txt
 └── start.bat                     # local: backend + frontend together
 ```
@@ -151,14 +150,8 @@ API URL. Redeploy the static site after changing the frontend variable.
 
 ### Docker
 
-```bash
-docker build -t layout-ocr .
-docker run -p 8000:8000 \
-  -e DJANGO_SECRET_KEY=change-me \
-  -e DJANGO_ALLOWED_HOSTS=localhost \
-  -e DJANGO_DEBUG=True \
-  layout-ocr
-```
+Not included. `render.yaml` is the only supported deployment path; add a
+Dockerfile if you move to a container host.
 
 ## API overview
 
