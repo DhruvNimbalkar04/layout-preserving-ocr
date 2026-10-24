@@ -41,7 +41,6 @@ document that keeps the original page layout**, not just plain extracted text.
 ├── docs/BENCHMARK.md             # evaluation protocol
 ├── scripts/evaluate.py           # CER/WER + timing harness
 ├── HLD.md                        # high-level design
-├── render.yaml                   # Render blueprint (API + static site)
 ├── requirements.txt
 └── start.bat                     # local: backend + frontend together
 ```
@@ -130,28 +129,35 @@ It reports CER, WER and seconds per page per document.
 
 ## Deployment
 
-### Render blueprint
+Two processes: the Django API (gunicorn + whitenoise) and a static Vite build.
 
-`render.yaml` defines two services:
+**Backend**
 
-1. **API** — gunicorn + whitenoise, runs migrations at build time.
-2. **Static site** — `npm ci && npm run build`, SPA rewrite to `index.html`.
+```bash
+pip install -r requirements.txt
+python backend/manage.py migrate
+python backend/manage.py collectstatic --noinput
+gunicorn --chdir backend backend.wsgi --log-file -
+```
 
-Steps: push the repo, choose **New → Blueprint**, select the repository, then
-set `CORS_ALLOWED_ORIGINS` to the static site URL and `VITE_API_BASE_URL` to the
-API URL. Redeploy the static site after changing the frontend variable.
+Set `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS`.
+Add `DJANGO_SERVE_MEDIA=True` only if the host cannot serve `/media/` itself.
 
-> PaddleOCR needs roughly **2 GB of RAM**. Free 512 MB instances will fail on
-> scanned documents; use at least the Starter plan or a container host.
+**Frontend**
 
-> Render's filesystem is **ephemeral**: uploaded files and the SQLite database do
-> not survive a redeploy. Use a persistent disk or Postgres + object storage for
-> anything beyond a demo.
+```bash
+cd frontend && npm ci && npm run build
+```
 
-### Docker
+Publish `frontend/dist` as a static site with a rewrite of `/*` to
+`/index.html`, and build with `VITE_API_BASE_URL` pointing at the API URL.
 
-Not included. `render.yaml` is the only supported deployment path; add a
-Dockerfile if you move to a container host.
+> PaddleOCR needs roughly **2 GB of RAM**. 512 MB free tiers will fail on
+> scanned documents.
+
+> Most demo hosts use an **ephemeral filesystem**: uploaded files and the SQLite
+> database do not survive a redeploy. Use a persistent disk or Postgres + object
+> storage for anything beyond a demo.
 
 ## API overview
 
