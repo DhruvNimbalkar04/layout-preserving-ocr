@@ -188,6 +188,8 @@ Publish `frontend/dist` as a static site with a rewrite of `/*` to
 
 ### Render (free plan)
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/DhruvNimbalkar04/layout-preserving-ocr)
+
 `render.yaml` in the repo root is a ready Blueprint for the API on the `free`
 plan (0.1 CPU / 512 MB). PaddleOCR cannot fit there, so the Blueprint sets
 `OCR_BACKEND=ocrspace` and only PyMuPDF runs in-process.
