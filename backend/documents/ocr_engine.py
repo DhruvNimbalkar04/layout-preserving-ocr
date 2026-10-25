@@ -56,6 +56,18 @@ def uses_local_paddle():
     return ocr_backend() == "paddle"
 
 
+def ocr_ready():
+    """True when the selected provider has everything it needs to run."""
+    backend = ocr_backend()
+    if backend == "paddle":
+        return _paddle_installed()
+    if backend == "ocrspace":
+        return bool((os.environ.get("OCRSPACE_API_KEY") or "").strip())
+    if backend == "gemini":
+        return bool((os.environ.get("GEMINI_API_KEY") or "").strip())
+    return False
+
+
 def page_text_char_count(elements):
     return sum(
         len((el.get("text") or "").strip())

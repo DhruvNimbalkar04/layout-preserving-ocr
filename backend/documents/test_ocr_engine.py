@@ -112,10 +112,23 @@ class OcrDispatchTests(SimpleTestCase):
 
 
 class HealthEndpointTests(SimpleTestCase):
-    def test_health_reports_backend(self):
+    def test_health_reports_backend_without_credentials(self):
         client = APIClient()
-        with patch.dict(os.environ, {"OCR_BACKEND": "gemini"}):
+        env = {k: v for k, v in os.environ.items() if k != "OCRSPACE_API_KEY"}
+        env["OCR_BACKEND"] = "gemini"
+        env.pop("GEMINI_API_KEY", None)
+        with patch.dict(os.environ, env, clear=True):
             response = client.get("/api/health/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["status"], "ok")
-        self.assertEqual(response.json()["ocr_backend"], "gemini")
+        body = response.json()
+        self.assertEqual(body["status"], "ok")
+        self.assertEqual(body["ocr_backend"], "gemini")
+        self.assertFalse(body["ocr_ready"])
+
+    def test_health_reports_ready_when_key_is_present(self):
+        client = APIClient()
+        env = dict(os.environ, OCR_BACKEND="ocrspace", OCRSPACE_API_KEY="k")
+        with patch.dict(os.environ, env):
+            response = client.get("/api/health/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ocr_ready"])

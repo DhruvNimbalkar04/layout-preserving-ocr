@@ -216,11 +216,12 @@ Verify after deploy:
 
 ```bash
 curl https://<api-service>.onrender.com/api/health/
-# {"status": "ok", "ocr_backend": "ocrspace"}
+# {"status": "ok", "ocr_backend": "ocrspace", "ocr_ready": true}
 ```
 
 Then upload a digital PDF (no OCR cost) and a scanned page (one OCR.space call
-per page).
+per page). `ocr_ready` stays `false` until `OCRSPACE_API_KEY` is set; the
+service is still healthy and still serves digital PDFs.
 
 ### Hugging Face Spaces
 

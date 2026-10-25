@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Documents, ExtractedText
 from .serializers import DocumentSerializer
-from .ocr_engine import ocr_backend
+from .ocr_engine import ocr_backend, ocr_ready
 from .pymupdf_extractor import (
     LAYOUT_VERSION,
     extract_document_layout,
@@ -144,7 +144,13 @@ class HealthView(APIView):
     permission_classes = []
 
     def get(self, request):
-        return Response({"status": "ok", "ocr_backend": ocr_backend()})
+        return Response(
+            {
+                "status": "ok",
+                "ocr_backend": ocr_backend(),
+                "ocr_ready": ocr_ready(),
+            }
+        )
 
 
 class DocumentView(ListCreateAPIView):
