@@ -200,7 +200,10 @@ plan (0.1 CPU / 512 MB). PaddleOCR cannot fit there, so the Blueprint sets
    `https://layout-preserving-ocr.vercel.app`.
 3. Rebuild the **frontend** (Vercel) with `VITE_API_BASE_URL` set to the API
    URL (`https://<api-service>.onrender.com`), then redeploy so the bundle picks
-   it up.
+   it up. `frontend/.env.production` already carries the deployed API URL, so a
+   plain redeploy is enough unless you override it in the Vercel dashboard.
+   `frontend/vercel.json` adds the SPA rewrite that keeps `/document/<id>`
+   working on a hard refresh.
 
 Free-plan caveats, all of which apply to this app:
 
