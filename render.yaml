@@ -35,10 +35,10 @@ services:
         value: ocrspace
       - key: OCRSPACE_API_KEY
         sync: false
+      # Frontend (Vercel). Exact origin plus a regex so preview deployments work.
       - key: CORS_ALLOWED_ORIGINS
-        sync: false
+        value: https://layout-preserving-ocr.vercel.app
+      - key: CORS_ALLOWED_ORIGIN_REGEXES
+        value: "^https://layout-preserving-ocr[a-z0-9-]*\\.vercel\\.app$"
       - key: DJANGO_CSRF_TRUSTED_ORIGINS
-        sync: false
-      # Escape hatch if CORS_ALLOWED_ORIGINS is not set yet (any Render app):
-      # - key: CORS_ALLOWED_ORIGIN_REGEXES
-      #   value: "^https://[a-z0-9-]+\\.onrender\\.com$"
+        value: https://layout-preserving-ocr.vercel.app

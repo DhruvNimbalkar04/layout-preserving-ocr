@@ -193,14 +193,12 @@ plan (0.1 CPU / 512 MB). PaddleOCR cannot fit there, so the Blueprint sets
 `OCR_BACKEND=ocrspace` and only PyMuPDF runs in-process.
 
 1. Render Dashboard → **New → Blueprint** → pick this repository.
-2. When prompted, set:
-   - `OCRSPACE_API_KEY` — free key from <https://ocr.space/ocrapi/freekey>.
-   - `CORS_ALLOWED_ORIGINS` — your deployed frontend origin, e.g.
-     `https://ocr-web.onrender.com` (no trailing slash).
-   - `DJANGO_CSRF_TRUSTED_ORIGINS` — the same origin, if you want Django admin
-     to work from the browser.
-3. Rebuild the **frontend** static site with `VITE_API_BASE_URL` set to the API
-   URL (`https://<api-service>.onrender.com`) so the bundle points at it.
+2. When prompted, set `OCRSPACE_API_KEY` (free key from
+   <https://ocr.space/ocrapi/freekey>). CORS and CSRF already point at
+   `https://layout-preserving-ocr.vercel.app`.
+3. Rebuild the **frontend** (Vercel) with `VITE_API_BASE_URL` set to the API
+   URL (`https://<api-service>.onrender.com`), then redeploy so the bundle picks
+   it up.
 
 Free-plan caveats, all of which apply to this app:
 
