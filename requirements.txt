@@ -1,10 +1,10 @@
+# Core runtime. Deliberately excludes PaddleOCR so the service fits a 512 MB
+# free tier (Render `free` plan); OCR then runs through a hosted API. Add
+# requirements-ocr-local.txt for local, in-process PaddleOCR.
 Django==6.1.2
 djangorestframework==3.18.3
 django-cors-headers==4.9.0
 pymupdf==2.0
-paddleocr==3.7.0
-paddlepaddle==3.2.0
-numpy==2.3.5
 python-docx==1.2.0
 python-dotenv==1.2.4
 whitenoise==6.12.0

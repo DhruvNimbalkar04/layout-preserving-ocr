@@ -4,7 +4,8 @@ A web application that turns scanned pages and PDFs into an **editable digital
 document that keeps the original page layout**, not just plain extracted text.
 
 - **Digital PDFs** — text, fonts and geometry are read with [PyMuPDF](https://pymupdf.readthedocs.io/).
-- **Scanned pages / images** — rendered and recognised with [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR).
+- **Scanned pages / images** — rendered and recognised with [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR),
+  or a hosted OCR API when the host cannot spare the ~2 GB PaddleOCR needs.
 - Extraction runs in the background with page-by-page progress, because OCR is slow.
 - Original and reconstruction sit side by side; text is editable in place.
 
@@ -24,7 +25,7 @@ document that keeps the original page layout**, not just plain extracted text.
 | Layer | Technology |
 |---|---|
 | Backend | Django 6.1, Django REST Framework, django-cors-headers |
-| OCR / PDF | PaddleOCR 3.7 (PP-OCRv5 mobile), PyMuPDF |
+| OCR / PDF | PyMuPDF, plus PaddleOCR 3.7 (PP-OCRv5 mobile) or OCR.space / Gemini |
 | Frontend | React 19, Vite 8, Tailwind CSS 4, React Router, Axios |
 | Storage | SQLite + local media (prototype) |
 
@@ -36,7 +37,8 @@ document that keeps the original page layout**, not just plain extracted text.
 │   ├── backend/                  # settings, urls, wsgi/asgi
 │   └── documents/                # models, views, serializers, tests
 │       ├── pymupdf_extractor.py  # layout pipeline + PDF/HTML generation
-│       └── paddleocr_engine.py   # thread-safe OCR wrapper
+│       ├── ocr_engine.py         # OCR provider dispatch (paddle/ocrspace/gemini/none)
+│       └── paddleocr_engine.py   # thread-safe local PaddleOCR wrapper
 ├── frontend/src/                 # React app (pages, components, API client)
 ├── docs/BENCHMARK.md             # protocol + measured results
 ├── scripts/evaluate.py           # CER/WER + timing harness
@@ -66,10 +68,14 @@ python -c "import secrets; print(secrets.token_urlsafe(50))"
 ```bash
 python -m venv env
 env\Scripts\activate            # Windows
-pip install -r requirements.txt
+pip install -r requirements-ocr-local.txt   # full local OCR (~2 GB RAM)
 python backend/manage.py migrate
 python backend/manage.py runserver
 ```
+
+`requirements.txt` alone is the slim runtime (PyMuPDF + Django, no PaddleOCR);
+use it when OCR is delegated to a hosted API. `requirements-ocr-local.txt` adds
+PaddleOCR for in-process recognition.
 
 API: `http://127.0.0.1:8000/api/`
 
@@ -105,6 +111,12 @@ Backend variables (see `.env.example`):
 | `DJANGO_UPLOAD_MAX_FILE_SIZE` | `20971520` (20 MB) | Maximum upload size. |
 | `UPLOAD_ALLOWED_EXTENSIONS` | pdf, jpg, jpeg, png, bmp, tif, tiff, webp | Upload allowlist. |
 | `DJANGO_SERVE_MEDIA` | `False` | Serve `/media/` through Django (demo hosts). |
+| `OCR_BACKEND` | auto | `paddle`, `ocrspace`, `gemini` or `none`. Empty = PaddleOCR if installed, else `none`. |
+| `OCRSPACE_API_KEY` | empty | Required for `OCR_BACKEND=ocrspace`. Free key: <https://ocr.space/ocrapi/freekey>. |
+| `OCRSPACE_ENGINE` | `2` | OCR.space engine; `3` is better on handwriting but slower. |
+| `GEMINI_API_KEY` | empty | Required for `OCR_BACKEND=gemini`. |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model used for page transcription. |
+| `OCR_UPLOAD_MAX_BYTES` | `950000` | Per-page image budget; keep under 1 MB for the OCR.space free tier. |
 
 Frontend: `VITE_API_BASE_URL` (default empty = same origin / dev proxy). Copy
 `frontend/.env.example` to `frontend/.env.local` when pointing at a remote API.
@@ -166,12 +178,49 @@ cd frontend && npm ci && npm run build
 Publish `frontend/dist` as a static site with a rewrite of `/*` to
 `/index.html`, and build with `VITE_API_BASE_URL` pointing at the API URL.
 
-> PaddleOCR needs roughly **2 GB of RAM**. 512 MB free tiers will fail on
-> scanned documents.
+> PaddleOCR needs roughly **2 GB of RAM**. On a 512 MB tier, set
+> `OCR_BACKEND=ocrspace` (or `gemini`) so recognition happens off-box; digital
+> PDFs keep working either way.
 
 > Most demo hosts use an **ephemeral filesystem**: uploaded files and the SQLite
 > database do not survive a redeploy. Use a persistent disk or Postgres + object
 > storage for anything beyond a demo.
+
+### Render (free plan)
+
+`render.yaml` in the repo root is a ready Blueprint for the API on the `free`
+plan (0.1 CPU / 512 MB). PaddleOCR cannot fit there, so the Blueprint sets
+`OCR_BACKEND=ocrspace` and only PyMuPDF runs in-process.
+
+1. Render Dashboard → **New → Blueprint** → pick this repository.
+2. When prompted, set:
+   - `OCRSPACE_API_KEY` — free key from <https://ocr.space/ocrapi/freekey>.
+   - `CORS_ALLOWED_ORIGINS` — your deployed frontend origin, e.g.
+     `https://ocr-web.onrender.com` (no trailing slash).
+   - `DJANGO_CSRF_TRUSTED_ORIGINS` — the same origin, if you want Django admin
+     to work from the browser.
+3. Rebuild the **frontend** static site with `VITE_API_BASE_URL` set to the API
+   URL (`https://<api-service>.onrender.com`) so the bundle points at it.
+
+Free-plan caveats, all of which apply to this app:
+
+- The service spins down after 15 idle minutes; the next request waits ~1 min.
+- The disk is ephemeral, so uploads and `db.sqlite3` are lost on every redeploy,
+  restart or spin-down. The app is a demo, not storage.
+- Extraction runs in a background thread, so a spin-down mid-job loses that job.
+- `DJANGO_SERVE_MEDIA=True` is set because there is no separate file host. The
+  `/media/` route is explicit in `backend/urls.py` since Django's `static()`
+  helper is a no-op when `DEBUG=False`.
+
+Verify after deploy:
+
+```bash
+curl https://<api-service>.onrender.com/api/health/
+# {"status": "ok", "ocr_backend": "ocrspace"}
+```
+
+Then upload a digital PDF (no OCR cost) and a scanned page (one OCR.space call
+per page).
 
 ### Hugging Face Spaces
 
@@ -193,6 +242,7 @@ to wake on the next request.
 
 | Method | Endpoint | Description |
 |---|---|---|
+| GET | `/api/health/` | Liveness probe; reports the active OCR backend |
 | GET/POST | `/api/documents/` | List documents / upload a new one |
 | GET/DELETE | `/api/documents/<id>/` | Retrieve or delete a document |
 | GET | `/api/documents/<id>/status/` | Extraction progress |
@@ -206,6 +256,8 @@ to wake on the next request.
 - Tables are approximated from vector fills and borders, not modelled as tables.
 - Reading order handles a single clear gutter only (two columns, not three).
 - Handwriting and low-quality photos degrade OCR.
+- Hosted OCR (OCR.space free) caps pages at 1 MB and 3 pages per PDF; each page
+  is uploaded separately here, so only the per-page size limit applies.
 - No authentication; the demo is single-tenant.
 - DOCX export preserves positions approximately, not exactly.
 

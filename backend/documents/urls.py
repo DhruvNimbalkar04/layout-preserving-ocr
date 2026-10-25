@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    HealthView,
     DocumentView,
     DocumentDetailView,
     DocumentPageView,
@@ -9,6 +10,7 @@ from .views import (
 )
 
 urlpatterns = [
+    path('health/', HealthView.as_view(), name='health'),
     path('documents/', DocumentView.as_view(), name='document-list'),
     path('documents/<int:document_id>/layout/', DocumentLayoutView.as_view(), name='document-layout'),
     path('documents/<int:document_id>/status/', DocumentStatusView.as_view(), name='document-status'),

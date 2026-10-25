@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Documents, ExtractedText
 from .serializers import DocumentSerializer
+from .ocr_engine import ocr_backend
 from .pymupdf_extractor import (
     LAYOUT_VERSION,
     extract_document_layout,
@@ -134,6 +135,16 @@ def _has_cached_layout(extracted_obj):
         and layout.get("pages")
         and layout.get("layout_version") == LAYOUT_VERSION
     )
+
+
+class HealthView(APIView):
+    """Liveness probe for the platform health check; touches no storage."""
+
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        return Response({"status": "ok", "ocr_backend": ocr_backend()})
 
 
 class DocumentView(ListCreateAPIView):

@@ -43,6 +43,9 @@ def build_staging(target):
         download.unlink()
 
     shutil.copy2(REPO_ROOT / "requirements.txt", target / "requirements.txt")
+    shutil.copy2(
+        REPO_ROOT / "requirements-ocr-local.txt", target / "requirements-ocr-local.txt"
+    )
     shutil.copy2(REPO_ROOT / "deploy" / "hf-space" / "Dockerfile", target / "Dockerfile")
     shutil.copy2(REPO_ROOT / "deploy" / "hf-space" / "README.md", target / "README.md")
 

@@ -2,13 +2,15 @@ import os
 import base64
 import pymupdf
 
-from .paddleocr_engine import (
+from .ocr_engine import (
     MIN_NATIVE_TEXT_CHARS,
     OCR_DPI,
-    ocr_file_to_elements,
-    ocr_image_to_elements,
+    ocr_backend,
+    ocr_image_file_to_elements,
+    ocr_upload_to_elements,
     page_text_char_count,
-    pixmap_to_rgb,
+    render_upload_image,
+    uses_local_paddle,
 )
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
@@ -104,16 +106,38 @@ def _apply_reading_order(elements, page_width):
 
 
 def _ocr_pdf_page(page, page_number):
-    pix = page.get_pixmap(dpi=OCR_DPI)
-    rgb = pixmap_to_rgb(pix)
-    scale = 72.0 / OCR_DPI
-    return ocr_image_to_elements(rgb, page_number=page_number, scale_x=scale, scale_y=scale)
+    """Recognise one PDF page with whichever OCR provider is configured."""
+    if uses_local_paddle():
+        from .paddleocr_engine import ocr_image_to_elements, pixmap_to_rgb
+
+        pix = page.get_pixmap(dpi=OCR_DPI)
+        return ocr_image_to_elements(
+            pixmap_to_rgb(pix),
+            page_number=page_number,
+            scale_x=page.rect.width / pix.width,
+            scale_y=page.rect.height / pix.height,
+        )
+
+    image_bytes, width_px, height_px = render_upload_image(page)
+    return ocr_upload_to_elements(
+        image_bytes,
+        page_number=page_number,
+        scale_x=page.rect.width / width_px,
+        scale_y=page.rect.height / height_px,
+        width_px=width_px,
+        height_px=height_px,
+    )
 
 
 def extract_document_layout(file_path, use_ocr=False, on_progress=None):
     ext = os.path.splitext(file_path)[1].lower()
     if ext in IMAGE_EXTS:
-        elements, width, height = ocr_file_to_elements(file_path, page_number=1)
+        if uses_local_paddle():
+            from .paddleocr_engine import ocr_file_to_elements
+
+            elements, width, height = ocr_file_to_elements(file_path, page_number=1)
+        else:
+            elements, width, height = ocr_image_file_to_elements(file_path, page_number=1)
         if on_progress:
             on_progress(1, 1)
         return {
@@ -123,12 +147,14 @@ def extract_document_layout(file_path, use_ocr=False, on_progress=None):
                 "height": float(height or 841.92),
                 "elements": _apply_reading_order(elements, width or 595.2),
             }],
-            "ocr_engine": "paddleocr",
+            "ocr_engine": ocr_backend(),
             "layout_version": LAYOUT_VERSION,
         }
 
     pages = []
     used_ocr = False
+    pages_needing_ocr = 0
+    ocr_errors = []
 
     with pymupdf.open(file_path) as doc:
         total_pages = len(doc)
@@ -252,6 +278,7 @@ def extract_document_layout(file_path, use_ocr=False, on_progress=None):
             # (including CVs uploaded as "scanned") already have selectable text.
             needs_ocr = native_chars < MIN_NATIVE_TEXT_CHARS
             if needs_ocr and (use_ocr or native_chars == 0):
+                pages_needing_ocr += 1
                 try:
                     ocr_elements = _ocr_pdf_page(page, page_number)
                     if ocr_elements:
@@ -265,6 +292,7 @@ def extract_document_layout(file_path, use_ocr=False, on_progress=None):
                         ]
                         elements = non_text + ocr_elements
                 except Exception as err:
+                    ocr_errors.append(f"page {page_number}: {err}")
                     print(f"OCR failed on page {page_number}, keeping native text: {err}")
 
             elements = _apply_reading_order(elements, page.rect.width)
@@ -279,9 +307,18 @@ def extract_document_layout(file_path, use_ocr=False, on_progress=None):
             if on_progress:
                 on_progress(page_number, total_pages)
 
+    # A document the user marked "scanned" is useless without its text, so
+    # surface the provider error instead of returning a silent image-only
+    # layout. Mixed documents keep whatever native text they had.
+    if use_ocr and not used_ocr and ocr_errors and len(ocr_errors) == pages_needing_ocr:
+        raise RuntimeError(
+            f"OCR failed for every scanned page (backend '{ocr_backend()}'): "
+            f"{ocr_errors[0]}"
+        )
+
     return {
         "pages": pages,
-        "ocr_engine": "paddleocr" if used_ocr else "pymupdf",
+        "ocr_engine": ocr_backend() if used_ocr else "pymupdf",
         "layout_version": LAYOUT_VERSION,
     }
 

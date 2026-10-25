@@ -1,0 +1,6 @@
+# Local / high-memory deployments only. PaddleOCR needs roughly 2 GB of RAM,
+# so it does not fit free hosting tiers (Render free and Starter are 512 MB).
+-r requirements.txt
+numpy==2.3.5
+paddleocr==3.7.0
+paddlepaddle==3.2.0

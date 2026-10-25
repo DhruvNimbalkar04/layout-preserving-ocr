@@ -3,12 +3,11 @@ import threading
 
 import numpy as np
 
+from .ocr_engine import MIN_NATIVE_TEXT_CHARS, OCR_DPI
+
 _engine = None
 _engine_lock = threading.Lock()
 _predict_lock = threading.Lock()
-
-OCR_DPI = 150
-MIN_NATIVE_TEXT_CHARS = 20
 
 MODEL_PRESETS = {
     "mobile": ("PP-OCRv5_mobile_det", "en_PP-OCRv5_mobile_rec"),
@@ -159,7 +158,3 @@ def ocr_file_to_elements(file_path, page_number=1):
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     height, width = rgb.shape[:2]
     return ocr_image_to_elements(rgb, page_number=page_number), width, height
-
-
-def page_text_char_count(elements):
-    return sum(len((el.get("text") or "").strip()) for el in elements if el.get("type") != "image")

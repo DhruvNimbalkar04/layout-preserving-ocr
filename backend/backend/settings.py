@@ -51,6 +51,13 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
+# Render exposes the public hostname at runtime; trust it without hardcoding
+# the generated subdomain. DJANGO_ALLOWED_HOSTS should still contain
+# ".onrender.com" so preview URLs and custom domains keep working.
+PLATFORM_HOST = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if PLATFORM_HOST and PLATFORM_HOST not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(PLATFORM_HOST)
+
 INSTALLED_APPS = [
     "whitenoise.runserver_nostatic",
     "django.contrib.admin",
@@ -154,6 +161,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 if not DEBUG:
     SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", True)
+    # Platform health probes call the container over plain HTTP and should get
+    # a 200 instead of a redirect to https.
+    SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = env_int("DJANGO_SECURE_HSTS_SECONDS", 60 * 60 * 24 * 30)
