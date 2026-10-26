@@ -4,3 +4,7 @@
 numpy==2.3.5
 paddleocr==3.7.0
 paddlepaddle==3.2.0
+# PaddleX imports chardet. 5.2+ ships a mypyc-compiled extension that Windows
+# Application Control (and some locked-down hosts) refuse to load, which breaks
+# `import paddleocr` and silently disables OCR. 5.1.0 is pure Python.
+chardet==5.1.0

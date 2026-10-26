@@ -1,12 +1,12 @@
 # Render Blueprint: free-tier API for the layout-preserving OCR app.
 #
 # PaddleOCR cannot run here (it needs ~2 GB; the `free` plan has 512 MB), so
-# OCR is delegated to a hosted API via OCR_BACKEND=ocrspace. Digital PDFs are
-# parsed locally with PyMuPDF and cost nothing.
+# this deployment serves digital PDFs: PyMuPDF parses them in-process and
+# scanned pages report that OCR is unavailable. Recognising scans needs a plan
+# with more memory.
 #
 # Deploy: Render Dashboard -> New -> Blueprint -> point at this repo.
-# Set OCRSPACE_API_KEY (https://ocr.space/ocrapi/freekey) and
-# CORS_ALLOWED_ORIGINS (your deployed frontend origin) when prompted.
+# Set CORS_ALLOWED_ORIGINS (your deployed frontend origin) when prompted.
 
 services:
   - type: web
@@ -31,10 +31,6 @@ services:
         value: "True"
       - key: DJANGO_UPLOAD_MAX_FILE_SIZE
         value: "20971520"
-      - key: OCR_BACKEND
-        value: ocrspace
-      - key: OCRSPACE_API_KEY
-        sync: false
       # Frontend (Vercel). Exact origin plus a regex so preview deployments work.
       - key: CORS_ALLOWED_ORIGINS
         value: https://layout-preserving-ocr.vercel.app

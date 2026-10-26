@@ -25,7 +25,7 @@ document that keeps the original page layout**, not just plain extracted text.
 | Layer | Technology |
 |---|---|
 | Backend | Django 6.1, Django REST Framework, django-cors-headers |
-| OCR / PDF | PyMuPDF, plus PaddleOCR 3.7 (PP-OCRv5 mobile) or OCR.space / Gemini |
+| OCR / PDF | PyMuPDF for layout, PaddleOCR 3.7 (PP-OCRv5 mobile) for scans |
 | Frontend | React 19, Vite 8, Tailwind CSS 4, React Router, Axios |
 | Storage | SQLite + local media (prototype) |
 
@@ -37,7 +37,7 @@ document that keeps the original page layout**, not just plain extracted text.
 │   ├── backend/                  # settings, urls, wsgi/asgi
 │   └── documents/                # models, views, serializers, tests
 │       ├── pymupdf_extractor.py  # layout pipeline + PDF/HTML generation
-│       ├── ocr_engine.py         # OCR provider dispatch (paddle/ocrspace/gemini/none)
+│       ├── ocr_engine.py         # OCR provider selection (paddle/none)
 │       └── paddleocr_engine.py   # thread-safe local PaddleOCR wrapper
 ├── frontend/src/                 # React app (pages, components, API client)
 ├── docs/BENCHMARK.md             # protocol + measured results
@@ -111,12 +111,7 @@ Backend variables (see `.env.example`):
 | `DJANGO_UPLOAD_MAX_FILE_SIZE` | `20971520` (20 MB) | Maximum upload size. |
 | `UPLOAD_ALLOWED_EXTENSIONS` | pdf, jpg, jpeg, png, bmp, tif, tiff, webp | Upload allowlist. |
 | `DJANGO_SERVE_MEDIA` | `False` | Serve `/media/` through Django (demo hosts). |
-| `OCR_BACKEND` | auto | `paddle`, `ocrspace`, `gemini` or `none`. Empty = PaddleOCR if installed, else `none`. |
-| `OCRSPACE_API_KEY` | empty | Required for `OCR_BACKEND=ocrspace`. Free key: <https://ocr.space/ocrapi/freekey>. |
-| `OCRSPACE_ENGINE` | `2` | OCR.space engine; `3` is better on handwriting but slower. |
-| `GEMINI_API_KEY` | empty | Required for `OCR_BACKEND=gemini`. |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model used for page transcription. |
-| `OCR_UPLOAD_MAX_BYTES` | `950000` | Per-page image budget; keep under 1 MB for the OCR.space free tier. |
+| `OCR_BACKEND` | auto | `paddle` or `none`. Empty = PaddleOCR if installed, else `none`. |
 
 Frontend: `VITE_API_BASE_URL` (default empty = same origin / dev proxy). Copy
 `frontend/.env.example` to `frontend/.env.local` when pointing at a remote API.
@@ -178,9 +173,10 @@ cd frontend && npm ci && npm run build
 Publish `frontend/dist` as a static site with a rewrite of `/*` to
 `/index.html`, and build with `VITE_API_BASE_URL` pointing at the API URL.
 
-> PaddleOCR needs roughly **2 GB of RAM**. On a 512 MB tier, set
-> `OCR_BACKEND=ocrspace` (or `gemini`) so recognition happens off-box; digital
-> PDFs keep working either way.
+> PaddleOCR needs roughly **2 GB of RAM**, so it cannot run on a 512 MB tier.
+> Digital PDFs keep working there because PyMuPDF parses them in-process;
+> scanned pages are reported as unsupported. Recognising scans needs a backend
+> plan with more memory.
 
 > Most demo hosts use an **ephemeral filesystem**: uploaded files and the SQLite
 > database do not survive a redeploy. Use a persistent disk or Postgres + object
@@ -191,14 +187,13 @@ Publish `frontend/dist` as a static site with a rewrite of `/*` to
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/DhruvNimbalkar04/layout-preserving-ocr)
 
 `render.yaml` in the repo root is a ready Blueprint for the API on the `free`
-plan (0.1 CPU / 512 MB). PaddleOCR cannot fit there, so the Blueprint sets
-`OCR_BACKEND=ocrspace` and only PyMuPDF runs in-process.
+plan (0.1 CPU / 512 MB). PaddleOCR cannot fit there, so only PyMuPDF runs
+in-process: digital PDFs are extracted normally and scanned pages are reported
+as unsupported. Recognising scans there needs a plan with more memory.
 
-1. Render Dashboard → **New → Blueprint** → pick this repository.
-2. When prompted, set `OCRSPACE_API_KEY` (free key from
-   <https://ocr.space/ocrapi/freekey>). CORS and CSRF already point at
-   `https://layout-preserving-ocr.vercel.app`.
-3. Rebuild the **frontend** (Vercel) with `VITE_API_BASE_URL` set to the API
+1. Render Dashboard → **New → Blueprint** → pick this repository. CORS and CSRF
+   already point at `https://layout-preserving-ocr.vercel.app`.
+2. Rebuild the **frontend** (Vercel) with `VITE_API_BASE_URL` set to the API
    URL (`https://<api-service>.onrender.com`), then redeploy so the bundle picks
    it up. `frontend/.env.production` already carries the deployed API URL, so a
    plain redeploy is enough unless you override it in the Vercel dashboard.
@@ -219,28 +214,12 @@ Verify after deploy:
 
 ```bash
 curl https://<api-service>.onrender.com/api/health/
-# {"status": "ok", "ocr_backend": "ocrspace", "ocr_ready": true}
+# {"status": "ok", "ocr_backend": "none", "ocr_ready": false}
 ```
 
-Then upload a digital PDF (no OCR cost) and a scanned page (one OCR.space call
-per page). `ocr_ready` stays `false` until `OCRSPACE_API_KEY` is set; the
-service is still healthy and still serves digital PDFs.
-
-### Hugging Face Spaces
-
-Free CPU Spaces have 16 GB RAM, enough for PaddleOCR. The Space is public, so the
-source is visible there even though the GitHub repo stays private.
-
-```powershell
-$env:HF_TOKEN = "hf_..."
-python scripts/deploy_hf_space.py --username <hf-user> `
-    --frontend-origin https://your-app.vercel.app
-```
-
-The script creates the Space, sets `DJANGO_ALLOWED_HOSTS`, CORS and the secret
-key, uploads `backend/` plus `deploy/hf-space/Dockerfile`, waits for the build
-and prints the API URL. The Space sleeps after 48 hours idle and takes a minute
-to wake on the next request.
+Then upload a digital PDF: layout, editing and export all work. `ocr_backend`
+reports `none` and `ocr_ready` stays `false` because PaddleOCR is not installed
+on this plan; the service is still healthy and still serves digital PDFs.
 
 ## API overview
 
@@ -260,8 +239,6 @@ to wake on the next request.
 - Tables are approximated from vector fills and borders, not modelled as tables.
 - Reading order handles a single clear gutter only (two columns, not three).
 - Handwriting and low-quality photos degrade OCR.
-- Hosted OCR (OCR.space free) caps pages at 1 MB and 3 pages per PDF; each page
-  is uploaded separately here, so only the per-page size limit applies.
 - No authentication; the demo is single-tenant.
 - DOCX export preserves positions approximately, not exactly.
 

@@ -4,13 +4,11 @@ import pymupdf
 
 from .ocr_engine import (
     MIN_NATIVE_TEXT_CHARS,
+    NO_OCR,
     OCR_DPI,
     ocr_backend,
-    ocr_image_file_to_elements,
-    ocr_upload_to_elements,
+    ocr_ready,
     page_text_char_count,
-    render_upload_image,
-    uses_local_paddle,
 )
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
@@ -106,38 +104,29 @@ def _apply_reading_order(elements, page_width):
 
 
 def _ocr_pdf_page(page, page_number):
-    """Recognise one PDF page with whichever OCR provider is configured."""
-    if uses_local_paddle():
-        from .paddleocr_engine import ocr_image_to_elements, pixmap_to_rgb
+    if not ocr_ready():
+        raise RuntimeError(NO_OCR)
 
-        pix = page.get_pixmap(dpi=OCR_DPI)
-        return ocr_image_to_elements(
-            pixmap_to_rgb(pix),
-            page_number=page_number,
-            scale_x=page.rect.width / pix.width,
-            scale_y=page.rect.height / pix.height,
-        )
+    from .paddleocr_engine import ocr_image_to_elements, pixmap_to_rgb
 
-    image_bytes, width_px, height_px = render_upload_image(page)
-    return ocr_upload_to_elements(
-        image_bytes,
+    pix = page.get_pixmap(dpi=OCR_DPI)
+    return ocr_image_to_elements(
+        pixmap_to_rgb(pix),
         page_number=page_number,
-        scale_x=page.rect.width / width_px,
-        scale_y=page.rect.height / height_px,
-        width_px=width_px,
-        height_px=height_px,
+        scale_x=page.rect.width / pix.width,
+        scale_y=page.rect.height / pix.height,
     )
 
 
 def extract_document_layout(file_path, use_ocr=False, on_progress=None):
     ext = os.path.splitext(file_path)[1].lower()
     if ext in IMAGE_EXTS:
-        if uses_local_paddle():
-            from .paddleocr_engine import ocr_file_to_elements
+        if not ocr_ready():
+            raise RuntimeError(NO_OCR)
 
-            elements, width, height = ocr_file_to_elements(file_path, page_number=1)
-        else:
-            elements, width, height = ocr_image_file_to_elements(file_path, page_number=1)
+        from .paddleocr_engine import ocr_file_to_elements
+
+        elements, width, height = ocr_file_to_elements(file_path, page_number=1)
         if on_progress:
             on_progress(1, 1)
         return {
@@ -274,8 +263,6 @@ def extract_document_layout(file_path, use_ocr=False, on_progress=None):
                 pass
 
             native_chars = page_text_char_count(elements)
-            # OCR only when the page is image-only / nearly empty. Digital PDFs
-            # (including CVs uploaded as "scanned") already have selectable text.
             needs_ocr = native_chars < MIN_NATIVE_TEXT_CHARS
             if needs_ocr and (use_ocr or native_chars == 0):
                 pages_needing_ocr += 1
@@ -283,8 +270,6 @@ def extract_document_layout(file_path, use_ocr=False, on_progress=None):
                     ocr_elements = _ocr_pdf_page(page, page_number)
                     if ocr_elements:
                         used_ocr = True
-                        # Drop the full-page scan: the OCR text replaces it, so
-                        # keeping it would render text over the original scan.
                         non_text = [
                             el for el in elements
                             if el.get("type") == "fill"
